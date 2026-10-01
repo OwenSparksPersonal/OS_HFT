@@ -24,6 +24,8 @@ numbers below refer to it).
   `course.json` and the v2 sprite. Published as a claude.ai artifact: https://claude.ai/artifact/UKHGAgso4C3c3nzgkzux6n
   (republish after rebuilding). Also on GitHub Pages: https://owensparkspersonal.github.io/OS_HFT/ (built by
   `.github/workflows/pages.yml` on every push to main; off claude.ai results save in the browser only). Results save per course in the browser and, when signed in, to the viewer's private db doc.
+  "New random course" uses a JS port of generate.py (seeded mulberry32; course shown as "Random course #seed").
+  Keep the port in step with generate.py; check it by running `generate()` with py_mini_racer against rules.is_compliant.
 - `UKAHFT_course_of_fire.xlsx` - output. Sheets: "Course of fire", "Checks".
 
 ## Run

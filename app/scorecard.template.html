@@ -105,6 +105,15 @@ ol.shots { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; backg
 .seg button.p[aria-pressed="true"] { background: var(--plate); }
 .seg button.m[aria-pressed="true"] { background: var(--miss); }
 
+.course-bar { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 10px 16px; }
+.course-name { display: grid; }
+.course-name small { font-size: .72rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.course-name span { font-family: var(--font-display); font-weight: 700; font-size: 1.35rem; line-height: 1.1; }
+.course-name span em { font-style: normal; font-family: var(--font-data); font-weight: 500; font-size: .85rem; color: var(--muted); }
+.course-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: .88rem; }
+.primary { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 6px; padding: 7px 12px; font-weight: 600; }
+.primary:hover { filter: brightness(1.08); }
+
 .mode { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .mode legend { font-size: .72rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 0; margin-bottom: 6px; }
 .mode label { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; background: var(--surface); cursor: pointer; font-weight: 600; }
@@ -137,6 +146,11 @@ footer { color: var(--muted); font-size: .8rem; max-width: 65ch; }
     <h1>HFT Scorecard</h1>
     <p>UKAHFT course of fire, 30 shots. Hit 2, plate 1, miss 0.</p>
   </header>
+
+  <div class="course-bar">
+    <div class="course-name"><small>Course</small><span id="course-name">Set course</span></div>
+    <div id="course-actions" class="course-actions"></div>
+  </div>
 
   <section class="panel" aria-label="Score">
     <div class="score-row">
@@ -172,23 +186,70 @@ footer { color: var(--muted); font-size: .8rem; max-width: 65ch; }
   <footer>
     Ranges are from the leading edge of the peg to the faceplate. The faceplate drawing shows the hit zone to scale.
     Prone only targets must be shot prone. Tap a selected result again to clear it.
+    A random course follows the UKAHFT 2020 course setting rules: Table 1A, Table 3 Option 2, and three Prone only
+    targets (one small, one medium, one large). Each course keeps its own card.
   </footer>
 </div>
 
 <script>
-const COURSE = /*COURSE*/[];
+const SET_COURSE = /*COURSE*/[];
 const ICON = { "Prone": "pr", "Prone only": "po", "Unsupported standing": "us", "Unsupported kneeling": "uk", "Supported standing": "ss", "Supported kneeling": "sk" };
 const POINTS = { hit: 2, plate: 1, miss: 0 };
 const PRONE = new Set(["Prone", "Prone only"]);
 
-// One card per course: key changes if course.json changes.
-const courseKey = "c" + [...JSON.stringify(COURSE)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7).toString(36);
-const LS_KEY = "hft-card-" + courseKey;
+// Random course: a port of generate.py (keep the two in step). Bands are [mm_lo, mm_hi, yd_lo, yd_hi],
+// whole yards, so 35.01-40 yd is 36-40.
+const BAND = {
+  SMALL: [15, 19, 13, 25], MID: [20, 24, 8, 30], NEAR: [25, 34, 8, 35], FAR: [25, 34, 36, 40], LARGE: [35, 45, 8, 45],
+  POS_LARGE: [35, 45, 8, 35], POS_MED: [25, 34, 8, 30],
+};
+function rng(seed) {  // mulberry32: same seed, same course
+  let a = seed >>> 0;
+  const next = () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const int = (lo, hi) => lo + Math.floor(next() * (hi - lo + 1));
+  const choice = xs => xs[int(0, xs.length - 1)];
+  const shuffle = xs => { for (let i = xs.length - 1; i > 0; i--) { const j = int(0, i); [xs[i], xs[j]] = [xs[j], xs[i]]; } return xs; };
+  return { int, choice, shuffle };
+}
+function generate(seed) {
+  const r = rng(seed);
+  const pick = (position, [mmLo, mmHi, ydLo, ydHi]) => ({ position, range_yd: r.int(ydLo, ydHi), hit_zone_mm: r.int(mmLo, mmHi) });
+  const [nMid, nFar] = r.choice([[2, 4], [3, 3]]);   // Table 1A Option 1 or 2
+  const nSmall = r.int(4, 6);
+  const nLarge = 24 - nSmall - nMid - 4 - nFar;
+  const rep = (b, n) => Array(n).fill(b);
+  const groups = [rep(BAND.SMALL, nSmall), [...rep(BAND.MID, nMid), ...rep(BAND.NEAR, 4), ...rep(BAND.FAR, nFar)], rep(BAND.LARGE, nLarge)];
+  const shots = [];
+  for (const bands of groups) {
+    const g = bands.map(b => pick("Prone", b));
+    r.choice(g).position = "Prone only";   // one small, one medium, one large
+    shots.push(...g);
+  }
+  const ss = () => r.choice([BAND.POS_MED, BAND.POS_LARGE]);
+  shots.push(pick("Unsupported standing", BAND.POS_LARGE), pick("Unsupported kneeling", BAND.POS_LARGE),
+    pick("Supported standing", ss()), pick("Supported standing", ss()),
+    pick("Supported kneeling", BAND.POS_MED), pick("Supported kneeling", BAND.POS_LARGE));   // Table 3 Option 2
+  return r.shuffle(shots).map((s, i) => ({ shot: i + 1, ...s }));
+}
+
+// Current course: the set course, or a random one identified by its seed.
+let seed = null;
+let COURSE = SET_COURSE;
+let courseKey, LS_KEY;
+function setCourse(newSeed) {
+  seed = newSeed;
+  COURSE = seed == null ? SET_COURSE : generate(seed);
+  // One card per course: the key changes whenever the course does.
+  courseKey = "c" + [...JSON.stringify(COURSE)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7).toString(36);
+  LS_KEY = "hft-card-" + courseKey;
+}
 
 let card = { results: {}, updatedAt: 0 };   // results: { [shot]: "hit"|"plate"|"miss" }
 let remote = null;                           // db doc ref when signed in
+let userCol = null;                          // viewer's private db collection when signed in
 
 function loadLocal() {
+  card = { results: {}, updatedAt: 0 };
   try { const v = JSON.parse(localStorage.getItem(LS_KEY)); if (v && v.results) card = v; } catch (e) {}
 }
 function saveLocal() {
@@ -302,6 +363,41 @@ $("reset-area").addEventListener("click", e => {
   }
 });
 
+// Course switching. Leaving a random course abandons its card, so ask first if it has results;
+// the set course keeps its card and needs no question.
+let pending = null;   // seed to switch to once confirmed (null = set course)
+function renderCourseBar(confirming) {
+  $("course-name").innerHTML = seed == null ? "Set course" : `Random course <em>#${seed}</em>`;
+  const n = Object.keys(card.results).length;
+  if (confirming) {
+    $("course-actions").innerHTML = `Leave this random course and its ${n} result${n === 1 ? "" : "s"}?
+      <button class="danger" id="leave-yes" type="button">Leave</button> <button class="ghost" id="leave-no" type="button">Stay</button>`;
+    $("leave-yes").focus();
+    return;
+  }
+  $("course-actions").innerHTML = `<button class="primary" id="new-course" type="button">New random course</button>` +
+    (seed == null ? "" : ` <button class="ghost" id="set-course" type="button">Back to set course</button>`);
+}
+function switchCourse(newSeed) {
+  setCourse(newSeed);
+  try { if (seed == null) localStorage.removeItem("hft-seed"); else localStorage.setItem("hft-seed", String(seed)); } catch (e) {}
+  loadLocal();
+  renderLegend(); renderShots(); update(); renderCourseBar(); resetIdle();
+  if (userCol) attachRemote();
+  saveCurrent();
+}
+$("course-actions").addEventListener("click", e => {
+  const id = e.target.id;
+  if (id === "new-course" || id === "set-course") {
+    pending = id === "new-course" ? Math.floor(Math.random() * 1e6) : null;
+    if (seed != null && Object.keys(card.results).length) renderCourseBar(true); else switchCourse(pending);
+  } else if (id === "leave-yes") switchCourse(pending);
+  else if (id === "leave-no") renderCourseBar();
+});
+
+try { const v = localStorage.getItem("hft-seed"); if (v != null && /^\d+$/.test(v)) seed = Number(v); } catch (e) {}
+setCourse(seed);
+
 try { if (localStorage.getItem("hft-mode") === "competition") mode = "competition"; } catch (e) {}
 $(mode === "competition" ? "mode-comp" : "mode-practice").checked = true;
 document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener("change", () => {
@@ -314,17 +410,16 @@ loadLocal();
 renderLegend();
 renderShots();
 update();
+renderCourseBar();
 
-// Sync to the viewer's private store when signed in; newest card wins.
-(async () => {
+// Sync to the viewer's private store when signed in; newest wins, for the card and for which course is current.
+async function attachRemote() {
+  const key = courseKey;
+  remote = null;
   try {
-    if (!window.claude?.use) return;
-    const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
-    if (!db || !user) return;
-    const uid = await user.id();
-    if (!uid) return;
-    const ref = db.collection("data/users/" + uid).doc("card-" + courseKey);
+    const ref = userCol.doc("card-" + key);
     const snap = await ref.get();
+    if (key !== courseKey) return;   // course changed while loading
     remote = ref;
     const d = snap.exists ? snap.data() : null;
     if (d && d.results && (d.updatedAt || 0) > card.updatedAt) {
@@ -335,7 +430,38 @@ update();
     }
     $("saved").textContent = "Saved to your account";
   } catch (e) {
-    remote = null;
+    $("saved").textContent = "Saved on this device only";
+  }
+}
+let seedAt = 0;
+try { seedAt = Number(localStorage.getItem("hft-seed-at")) || 0; } catch (e) {}
+function saveCurrent() {
+  seedAt = Date.now();
+  try { localStorage.setItem("hft-seed-at", String(seedAt)); } catch (e) {}
+  if (userCol) userCol.doc("current").set({ seed, updatedAt: seedAt }).catch(() => {});
+}
+(async () => {
+  try {
+    if (!window.claude?.use) return;
+    const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+    if (!db || !user) return;
+    const uid = await user.id();
+    if (!uid) return;
+    userCol = db.collection("data/users/" + uid);
+    const cur = await userCol.doc("current").get();
+    const c = cur.exists ? cur.data() : null;
+    if (c && (c.updatedAt || 0) > seedAt && c.seed !== seed && (c.seed === null || Number.isInteger(c.seed))) {
+      seedAt = c.updatedAt;
+      try { localStorage.setItem("hft-seed-at", String(seedAt)); } catch (e) {}
+      setCourse(c.seed);
+      try { if (seed == null) localStorage.removeItem("hft-seed"); else localStorage.setItem("hft-seed", String(seed)); } catch (e) {}
+      loadLocal(); renderLegend(); renderShots(); update(); renderCourseBar(); resetIdle();
+    } else if (seedAt && !(c && c.updatedAt >= seedAt)) {
+      userCol.doc("current").set({ seed, updatedAt: seedAt }).catch(() => {});
+    }
+    await attachRemote();
+  } catch (e) {
+    userCol = null; remote = null;
   }
 })();
 </script>
