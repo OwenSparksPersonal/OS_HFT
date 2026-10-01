@@ -114,6 +114,15 @@ ol.shots { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; backg
 .primary { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 6px; padding: 7px 12px; font-weight: 600; }
 .primary:hover { filter: brightness(1.08); }
 
+.seed-form { display: grid; gap: 6px; }
+.seed-form label { font-size: .72rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.seed-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.seed-row input { flex: 0 1 12rem; min-width: 0; font-family: var(--font-data); font-size: 1rem; padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.seed-row input[aria-invalid="true"] { border-color: var(--miss); box-shadow: inset 0 0 0 1px var(--miss); }
+.seed-hint { margin: 0; font-size: .82rem; color: var(--muted); }
+.seed-error { margin: 0; font-size: .85rem; color: var(--miss); font-weight: 600; }
+.seed-error.ok { color: var(--hit); }
+
 .mode { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .mode legend { font-size: .72rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 0; margin-bottom: 6px; }
 .mode label { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; background: var(--surface); cursor: pointer; font-weight: 600; }
@@ -151,6 +160,17 @@ footer { color: var(--muted); font-size: .8rem; max-width: 65ch; }
     <div class="course-name"><small>Course</small><span id="course-name">Set course</span></div>
     <div id="course-actions" class="course-actions"></div>
   </div>
+
+  <form class="seed-form" id="seed-form" novalidate>
+    <label for="seed-input">Load a course by seed</label>
+    <div class="seed-row">
+      <input id="seed-input" name="seed" type="text" inputmode="numeric" autocomplete="off" spellcheck="false"
+        placeholder="e.g. 482913" aria-describedby="seed-hint seed-error">
+      <button class="ghost" type="submit">Load course</button>
+    </div>
+    <p class="seed-hint" id="seed-hint">A whole number from 0 to 999999, digits only (a leading # is fine). Everyone who enters the same seed gets the same course, so share the number shown next to "Random course".</p>
+    <p class="seed-error" id="seed-error" role="alert" hidden></p>
+  </form>
 
   <section class="panel" aria-label="Score">
     <div class="score-row">
@@ -376,23 +396,59 @@ function renderCourseBar(confirming) {
     return;
   }
   $("course-actions").innerHTML = `<button class="primary" id="new-course" type="button">New random course</button>` +
-    (seed == null ? "" : ` <button class="ghost" id="set-course" type="button">Back to set course</button>`);
+    (seed == null ? "" : ` <button class="ghost" id="copy-seed" type="button">Copy seed</button> <button class="ghost" id="set-course" type="button">Back to set course</button>`);
 }
 function switchCourse(newSeed) {
   setCourse(newSeed);
   try { if (seed == null) localStorage.removeItem("hft-seed"); else localStorage.setItem("hft-seed", String(seed)); } catch (e) {}
   loadLocal();
   renderLegend(); renderShots(); update(); renderCourseBar(); resetIdle();
+  $("seed-input").value = ""; seedMessage("");
   if (userCol) attachRemote();
   saveCurrent();
 }
+function requestCourse(newSeed) {
+  pending = newSeed;
+  if (seed != null && Object.keys(card.results).length) renderCourseBar(true); else switchCourse(pending);
+}
 $("course-actions").addEventListener("click", e => {
   const id = e.target.id;
-  if (id === "new-course" || id === "set-course") {
-    pending = id === "new-course" ? Math.floor(Math.random() * 1e6) : null;
-    if (seed != null && Object.keys(card.results).length) renderCourseBar(true); else switchCourse(pending);
-  } else if (id === "leave-yes") switchCourse(pending);
+  if (id === "new-course") requestCourse(Math.floor(Math.random() * (SEED_MAX + 1)));
+  else if (id === "set-course") requestCourse(null);
+  else if (id === "leave-yes") switchCourse(pending);
   else if (id === "leave-no") renderCourseBar();
+  else if (id === "copy-seed") {
+    const b = e.target, done = t => { b.textContent = t; setTimeout(() => { b.textContent = "Copy seed"; }, 1500); };
+    navigator.clipboard.writeText(String(seed)).then(() => done("Copied"), () => done(String(seed)));
+  }
+});
+
+// Seeds: whole numbers 0-999999 (the range "New random course" draws from). A leading # is allowed,
+// since the course name shows the seed as #482913.
+const SEED_MAX = 999999;
+function parseSeed(raw) {
+  const v = raw.trim().replace(/^#/, "");
+  if (v === "") return { error: "Enter a seed. A seed is a whole number from 0 to 999999." };
+  if (/^-\d/.test(v)) return { error: `"${raw.trim()}" is negative. Seeds start at 0.` };
+  if (/^\d+[.,]\d*$/.test(v) || /^\d{1,3}(,\d{3})+$/.test(v)) return { error: `"${raw.trim()}" has a decimal point or comma. Enter the digits only, e.g. 482913.` };
+  const bad = [...v].find(ch => !/[0-9]/.test(ch));
+  if (bad !== undefined) return { error: (/\s/.test(bad) ? "Spaces are" : `"${bad}" is`) + " not allowed. Seeds use the digits 0 to 9 only." };
+  const n = Number(v);
+  if (n > SEED_MAX) return { error: `${v} is too large. The largest seed is 999999 (six digits).` };
+  return { seed: n };
+}
+function seedMessage(text, ok) {
+  const el = $("seed-error");
+  el.textContent = text; el.hidden = !text; el.classList.toggle("ok", !!ok);
+  $("seed-input").setAttribute("aria-invalid", String(!!text && !ok));
+}
+$("seed-input").addEventListener("input", () => seedMessage(""));
+$("seed-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const r = parseSeed($("seed-input").value);
+  if (r.error) { seedMessage(r.error); $("seed-input").focus(); return; }
+  if (r.seed === seed) { seedMessage(`Course #${r.seed} is already loaded.`, true); return; }
+  requestCourse(r.seed);
 });
 
 try { const v = localStorage.getItem("hft-seed"); if (v != null && /^\d+$/.test(v)) seed = Number(v); } catch (e) {}
