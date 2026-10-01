@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 96 96" role="img" aria-label="Unsupported kneeling">
+  <title>Unsupported kneeling</title>
+  <polyline points="6,86 90,86" fill="none" stroke="#aaaaaa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="42" cy="34" r="3.5" fill="none" stroke="#222222" stroke-width="5"/>
+  <polyline points="42,41 38,62" fill="none" stroke="#222222" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="38,62 32,86 16,86" fill="none" stroke="#222222" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="38,62 58,66 58,86 66,86" fill="none" stroke="#222222" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="44,46 92,40" fill="none" stroke="#222222" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="42,48 66,43" fill="none" stroke="#222222" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

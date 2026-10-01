@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 96 96" role="img" aria-label="Prone only">
+  <title>Prone only</title>
+  <polyline points="6,86 90,86" fill="none" stroke="#aaaaaa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="42" cy="72" r="3.5" fill="none" stroke="#ba7517" stroke-width="5"/>
+  <polyline points="8,82 34,77" fill="none" stroke="#ba7517" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="30,74 90,68" fill="none" stroke="#ba7517" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="34,77 62,77" fill="none" stroke="#ba7517" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="64,86 64,73" fill="none" stroke="#ba7517" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="80" cy="16" r="12" fill="#ba7517"/>
+  <polyline points="80,10 80,22" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <polyline points="75,17 80,22 85,17" fill="none" stroke="#ffffff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

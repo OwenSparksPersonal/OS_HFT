@@ -1,0 +1,182 @@
+[
+  {
+    "shot": 1,
+    "position": "Prone",
+    "range_yd": 14,
+    "hit_zone_mm": 45
+  },
+  {
+    "shot": 2,
+    "position": "Prone",
+    "range_yd": 15,
+    "hit_zone_mm": 17
+  },
+  {
+    "shot": 3,
+    "position": "Prone",
+    "range_yd": 30,
+    "hit_zone_mm": 28
+  },
+  {
+    "shot": 4,
+    "position": "Prone",
+    "range_yd": 36,
+    "hit_zone_mm": 30
+  },
+  {
+    "shot": 5,
+    "position": "Unsupported standing",
+    "range_yd": 18,
+    "hit_zone_mm": 38
+  },
+  {
+    "shot": 6,
+    "position": "Prone",
+    "range_yd": 26,
+    "hit_zone_mm": 35
+  },
+  {
+    "shot": 7,
+    "position": "Prone only",
+    "range_yd": 18,
+    "hit_zone_mm": 19
+  },
+  {
+    "shot": 8,
+    "position": "Prone",
+    "range_yd": 12,
+    "hit_zone_mm": 22
+  },
+  {
+    "shot": 9,
+    "position": "Supported standing",
+    "range_yd": 22,
+    "hit_zone_mm": 30
+  },
+  {
+    "shot": 10,
+    "position": "Prone",
+    "range_yd": 42,
+    "hit_zone_mm": 36
+  },
+  {
+    "shot": 11,
+    "position": "Prone",
+    "range_yd": 16,
+    "hit_zone_mm": 30
+  },
+  {
+    "shot": 12,
+    "position": "Prone",
+    "range_yd": 25,
+    "hit_zone_mm": 15
+  },
+  {
+    "shot": 13,
+    "position": "Supported standing",
+    "range_yd": 28,
+    "hit_zone_mm": 40
+  },
+  {
+    "shot": 14,
+    "position": "Prone",
+    "range_yd": 39,
+    "hit_zone_mm": 34
+  },
+  {
+    "shot": 15,
+    "position": "Prone",
+    "range_yd": 10,
+    "hit_zone_mm": 40
+  },
+  {
+    "shot": 16,
+    "position": "Prone only",
+    "range_yd": 38,
+    "hit_zone_mm": 28
+  },
+  {
+    "shot": 17,
+    "position": "Prone",
+    "range_yd": 24,
+    "hit_zone_mm": 26
+  },
+  {
+    "shot": 18,
+    "position": "Unsupported kneeling",
+    "range_yd": 15,
+    "hit_zone_mm": 40
+  },
+  {
+    "shot": 19,
+    "position": "Prone",
+    "range_yd": 20,
+    "hit_zone_mm": 16
+  },
+  {
+    "shot": 20,
+    "position": "Prone",
+    "range_yd": 32,
+    "hit_zone_mm": 42
+  },
+  {
+    "shot": 21,
+    "position": "Prone",
+    "range_yd": 40,
+    "hit_zone_mm": 25
+  },
+  {
+    "shot": 22,
+    "position": "Supported kneeling",
+    "range_yd": 18,
+    "hit_zone_mm": 26
+  },
+  {
+    "shot": 23,
+    "position": "Prone",
+    "range_yd": 28,
+    "hit_zone_mm": 20
+  },
+  {
+    "shot": 24,
+    "position": "Prone",
+    "range_yd": 44,
+    "hit_zone_mm": 40
+  },
+  {
+    "shot": 25,
+    "position": "Prone",
+    "range_yd": 35,
+    "hit_zone_mm": 25
+  },
+  {
+    "shot": 26,
+    "position": "Prone",
+    "range_yd": 20,
+    "hit_zone_mm": 38
+  },
+  {
+    "shot": 27,
+    "position": "Supported kneeling",
+    "range_yd": 30,
+    "hit_zone_mm": 38
+  },
+  {
+    "shot": 28,
+    "position": "Prone",
+    "range_yd": 22,
+    "hit_zone_mm": 18
+  },
+  {
+    "shot": 29,
+    "position": "Prone only",
+    "range_yd": 34,
+    "hit_zone_mm": 45
+  },
+  {
+    "shot": 30,
+    "position": "Prone",
+    "range_yd": 45,
+    "hit_zone_mm": 35
+  }
+]

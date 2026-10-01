@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.venv/
+# Excel/LibreOffice lock files
+~$*
+.~lock.*#
+# generator output and LibreOffice recalc output
+course_generated.json
+out/
