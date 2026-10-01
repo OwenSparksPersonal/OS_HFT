@@ -12,7 +12,7 @@ BASE = Path(__file__).resolve().parent
 ap = argparse.ArgumentParser(description="Build the UKAHFT course of fire workbook.")
 ap.add_argument("--course", type=Path, default=BASE / "course.json", help="course JSON (default: course.json)")
 ap.add_argument("--out", type=Path, default=BASE / "UKAHFT_course_of_fire.xlsx", help="output workbook")
-ap.add_argument("--icons", choices=sorted(STYLES), default="v1", help="icon set: v1 line figures, v2 pictograms")
+ap.add_argument("--icons", choices=sorted(STYLES), default="v2", help="icon set: v1 line figures, v2 pictograms (default)")
 args = ap.parse_args()
 
 export_all()

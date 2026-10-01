@@ -1,0 +1,341 @@
+<title>HFT Scorecard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700&family=Public+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: score panel on top (sticky summary), then one row per peg in shooting order; row = peg no, icon, position, range, faceplate, Hit/Plate/Miss. */
+:root {
+  --bg: #f3f4ef;          /* field-grey paper */
+  --surface: #ffffff;
+  --ink: #1d221c;
+  --muted: #5d6658;
+  --line: #d9ddd2;
+  --accent: #2f5d3a;      /* deep field green */
+  --accent-ink: #ffffff;
+  --hit: #2c7a3f;
+  --plate: #b9660c;
+  --miss: #b23a3a;
+  --plate-face: #1d221c;  /* black faceplate */
+  --kill: #f3c640;        /* yellow hit zone */
+  --font-display: "Saira Condensed", "Arial Narrow", sans-serif;
+  --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161915; --surface: #1f231e; --ink: #e7eae2; --muted: #a2ab9b; --line: #343a31;
+    --accent: #8cc79a; --accent-ink: #10150f; --hit: #6cc285; --plate: #e59a45; --miss: #e57373;
+    --plate-face: #0b0d0a; --kill: #f3c640; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161915; --surface: #1f231e; --ink: #e7eae2; --muted: #a2ab9b; --line: #343a31;
+  --accent: #8cc79a; --accent-ink: #10150f; --hit: #6cc285; --plate: #e59a45; --miss: #e57373;
+  --plate-face: #0b0d0a; --kill: #f3c640; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; display: grid; gap: 20px; }
+
+header h1 { font-family: var(--font-display); font-weight: 700; font-size: 2.1rem; line-height: 1.05; margin: 0; letter-spacing: .01em; text-wrap: balance; }
+header p { margin: 4px 0 0; color: var(--muted); }
+
+.panel {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 2;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px 16px; display: grid; gap: 12px;
+  box-shadow: 0 6px 18px -14px rgba(0,0,0,.5);
+}
+.score-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 28px; }
+.score { font-family: var(--font-display); font-weight: 700; line-height: .9; font-variant-numeric: tabular-nums; }
+.score b { font-size: 3.4rem; }
+.score span { font-size: 1.4rem; color: var(--muted); font-weight: 500; }
+.score small { display: block; font-family: var(--font-body); font-size: .72rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.tally { display: flex; flex-wrap: wrap; gap: 8px 20px; font-variant-numeric: tabular-nums; }
+.tally div { display: grid; }
+.tally dt { font-size: .72rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.tally dd { margin: 0; font-family: var(--font-data); font-size: 1.15rem; }
+.tally .h dd { color: var(--hit); } .tally .p dd { color: var(--plate); } .tally .m dd { color: var(--miss); }
+.progress { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; display: flex; }
+.progress i { display: block; height: 100%; transition: width .2s; }
+.progress .h { background: var(--hit); } .progress .p { background: var(--plate); } .progress .m { background: var(--miss); }
+.panel-foot { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; font-size: .82rem; color: var(--muted); }
+.split { display: flex; gap: 16px; flex-wrap: wrap; }
+.split b { color: var(--ink); font-family: var(--font-data); font-weight: 500; }
+
+button { font: inherit; cursor: pointer; }
+.ghost { background: none; border: 1px solid var(--line); color: var(--ink); border-radius: 6px; padding: 5px 10px; }
+.ghost:hover { border-color: var(--muted); }
+.danger { background: var(--miss); color: var(--surface); border: 0; border-radius: 6px; padding: 5px 10px; font-weight: 600; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .82rem; color: var(--muted); margin: 0; padding: 0; list-style: none; }
+.legend li { display: flex; align-items: center; gap: 6px; }
+.legend svg { width: 26px; height: 26px; }
+
+ol.shots { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.shot {
+  display: grid; align-items: center; gap: 4px 14px; padding: 10px 14px;
+  grid-template-columns: 2.2rem 52px minmax(0, 1fr) 64px auto;
+  grid-template-areas: "no icon info plate score";
+  border-top: 1px solid var(--line);
+}
+.shot:first-child { border-top: 0; }
+.shot .no { grid-area: no; font-family: var(--font-display); font-weight: 700; font-size: 1.6rem; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+.shot .icon { grid-area: icon; width: 52px; height: 52px; }
+.shot .info { grid-area: info; min-width: 0; }
+.shot .pos { font-weight: 600; }
+.shot .meta { color: var(--muted); font-size: .85rem; font-variant-numeric: tabular-nums; }
+.shot .meta b { font-family: var(--font-data); font-weight: 500; color: var(--ink); }
+.shot .face { grid-area: plate; display: grid; justify-items: center; gap: 2px; font-family: var(--font-data); font-size: .78rem; color: var(--muted); }
+.shot .face svg { width: 40px; height: 40px; }
+.shot .face .fp { fill: var(--plate-face); }
+.shot .face .kz { fill: var(--kill); }
+.shot[data-r="2"] { background: color-mix(in srgb, var(--hit) 9%, transparent); }
+.shot[data-r="1"] { background: color-mix(in srgb, var(--plate) 10%, transparent); }
+.shot[data-r="0"] { background: color-mix(in srgb, var(--miss) 9%, transparent); }
+
+.seg { grid-area: score; display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); }
+.seg button { border: 0; background: none; color: var(--ink); padding: 8px 10px; min-width: 54px; display: grid; justify-items: center; line-height: 1.1; font-weight: 600; font-size: .85rem; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button small { font-family: var(--font-data); font-weight: 500; font-size: .7rem; color: var(--muted); }
+.seg button[aria-pressed="true"] { color: var(--surface); }
+.seg button[aria-pressed="true"] small { color: inherit; opacity: .85; }
+.seg button.h[aria-pressed="true"] { background: var(--hit); }
+.seg button.p[aria-pressed="true"] { background: var(--plate); }
+.seg button.m[aria-pressed="true"] { background: var(--miss); }
+
+.mode { border: 0; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.mode legend { font-size: .72rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 0; margin-bottom: 6px; }
+.mode label { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; background: var(--surface); cursor: pointer; font-weight: 600; }
+.mode label:has(input:checked) { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.mode input { accent-color: var(--accent); margin: 0; }
+.mode small { font-weight: 400; color: var(--muted); font-size: .8rem; }
+
+.hidden-val { display: inline-flex; align-items: center; gap: 4px; padding: 0 6px; border: 1px dashed var(--muted); border-radius: 4px; font-size: .78rem; color: var(--muted); }
+.hidden-val svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.shot .face .unknown { fill: none; stroke: var(--muted); stroke-width: 3; stroke-dasharray: 7 6; }
+.shot .face .q { fill: var(--muted); font-family: var(--font-display); font-weight: 700; font-size: 46px; }
+
+footer { color: var(--muted); font-size: .8rem; max-width: 65ch; }
+
+@media (max-width: 620px) {
+  .shot { grid-template-columns: 1.8rem 44px minmax(0, 1fr) 44px; grid-template-areas: "no icon info plate" "score score score score"; }
+  .shot .icon { width: 44px; height: 44px; }
+  .shot .face svg { width: 34px; height: 34px; }
+  .seg { display: flex; }
+  .seg button { flex: 1; }
+  .score b { font-size: 2.8rem; }
+}
+@media (prefers-reduced-motion: reduce) { .progress i { transition: none; } }
+</style>
+
+<!--SPRITE-->
+
+<div class="wrap">
+  <header>
+    <h1>HFT Scorecard</h1>
+    <p>UKAHFT course of fire, 30 shots. Hit 2, plate 1, miss 0.</p>
+  </header>
+
+  <section class="panel" aria-label="Score">
+    <div class="score-row">
+      <div class="score"><small>Score</small><b id="total">0</b><span> / 60</span></div>
+      <dl class="tally">
+        <div class="h"><dt>Hits</dt><dd id="n-hit">0</dd></div>
+        <div class="p"><dt>Plates</dt><dd id="n-plate">0</dd></div>
+        <div class="m"><dt>Misses</dt><dd id="n-miss">0</dd></div>
+        <div><dt>To shoot</dt><dd id="n-left">30</dd></div>
+      </dl>
+    </div>
+    <div class="progress" aria-hidden="true"><i class="h" id="bar-h"></i><i class="p" id="bar-p"></i><i class="m" id="bar-m"></i></div>
+    <div class="panel-foot">
+      <div class="split">
+        <span>Prone <b id="s-prone">0 / 48</b></span>
+        <span>Positional <b id="s-pos">0 / 12</b></span>
+      </div>
+      <div id="reset-area"><button class="ghost" id="reset" type="button">Clear card</button></div>
+    </div>
+    <div class="panel-foot"><span id="saved">Saved on this device</span></div>
+  </section>
+
+  <fieldset class="mode">
+    <legend>Mode</legend>
+    <label><input type="radio" name="mode" id="mode-practice" value="practice" checked> Practice <small>ranges and hit zones shown</small></label>
+    <label><input type="radio" name="mode" id="mode-comp" value="competition"> Competition <small>ranges and hit zones hidden</small></label>
+  </fieldset>
+
+  <ul class="legend" id="legend"></ul>
+
+  <ol class="shots" id="shots"></ol>
+
+  <footer>
+    Ranges are from the leading edge of the peg to the faceplate. The faceplate drawing shows the hit zone to scale.
+    Prone only targets must be shot prone. Tap a selected result again to clear it.
+  </footer>
+</div>
+
+<script>
+const COURSE = /*COURSE*/[];
+const ICON = { "Prone": "pr", "Prone only": "po", "Unsupported standing": "us", "Unsupported kneeling": "uk", "Supported standing": "ss", "Supported kneeling": "sk" };
+const POINTS = { hit: 2, plate: 1, miss: 0 };
+const PRONE = new Set(["Prone", "Prone only"]);
+
+// One card per course: key changes if course.json changes.
+const courseKey = "c" + [...JSON.stringify(COURSE)].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7).toString(36);
+const LS_KEY = "hft-card-" + courseKey;
+
+let card = { results: {}, updatedAt: 0 };   // results: { [shot]: "hit"|"plate"|"miss" }
+let remote = null;                           // db doc ref when signed in
+
+function loadLocal() {
+  try { const v = JSON.parse(localStorage.getItem(LS_KEY)); if (v && v.results) card = v; } catch (e) {}
+}
+function saveLocal() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(card)); } catch (e) {}
+}
+
+const $ = id => document.getElementById(id);
+const svgUse = (id, cls) => `<svg class="${cls}" viewBox="0 0 96 96" aria-hidden="true"><use href="#hft-${id}"/></svg>`;
+
+function faceplate(mm) {
+  // 100 mm-wide faceplate drawn in a 100-unit box, hit zone to scale.
+  return `<svg viewBox="0 0 100 100" aria-hidden="true"><circle class="fp" cx="50" cy="50" r="48"/><circle class="kz" cx="50" cy="50" r="${mm / 2}"/></svg>`;
+}
+
+function renderLegend() {
+  const seen = [...new Set(COURSE.map(s => s.position))];
+  $("legend").innerHTML = Object.keys(ICON).filter(p => seen.includes(p)).map(p => {
+    const n = COURSE.filter(s => s.position === p).length;
+    return `<li>${svgUse(ICON[p], "")}${p} <span>&times;${n}</span></li>`;
+  }).join("");
+}
+
+// Competition mode: values are left out of the page entirely, with a marker in their place.
+const EYE_OFF = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 6.1A10 10 0 0 1 12 6c5 0 9 6 9 6a17 17 0 0 1-2.7 3.3M6.6 6.6C4.3 8.1 3 12 3 12s4 6 9 6a9 9 0 0 0 4.4-1.1M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>`;
+const hiddenFace = `<svg viewBox="0 0 100 100" aria-hidden="true"><circle class="fp" cx="50" cy="50" r="48"/><circle class="unknown" cx="50" cy="50" r="30"/><text class="q" x="50" y="66" text-anchor="middle">?</text></svg>`;
+let mode = "practice";
+
+function renderShots() {
+  const comp = mode === "competition";
+  $("shots").innerHTML = COURSE.map(s => {
+    const m = (s.range_yd * 0.9144).toFixed(1);
+    const range = comp
+      ? `<span class="hidden-val" title="Range hidden in competition mode">${EYE_OFF}Range hidden</span>`
+      : `<b>${s.range_yd}</b> yd &middot; ${m} m`;
+    const face = comp
+      ? `<div class="face" title="Hit zone hidden in competition mode">${hiddenFace}hidden</div>`
+      : `<div class="face" title="${s.hit_zone_mm}mm hit zone">${faceplate(s.hit_zone_mm)}${s.hit_zone_mm}mm</div>`;
+    return `<li class="shot" data-shot="${s.shot}">
+      <span class="no">${s.shot}</span>
+      ${svgUse(ICON[s.position], "icon")}
+      <div class="info"><div class="pos">${s.position}</div>
+        <div class="meta">${range}</div></div>
+      ${face}
+      <div class="seg" role="group" aria-label="Shot ${s.shot} result">
+        <button type="button" class="h" data-v="hit" aria-pressed="false">Hit<small>2</small></button>
+        <button type="button" class="p" data-v="plate" aria-pressed="false">Plate<small>1</small></button>
+        <button type="button" class="m" data-v="miss" aria-pressed="false">Miss<small>0</small></button>
+      </div>
+    </li>`;
+  }).join("");
+}
+
+function update() {
+  let total = 0, prone = 0, pos = 0, proneMax = 0, posMax = 0;
+  const n = { hit: 0, plate: 0, miss: 0 };
+  for (const s of COURSE) {
+    const r = card.results[s.shot];
+    const li = document.querySelector(`.shot[data-shot="${s.shot}"]`);
+    li.dataset.r = r ? POINTS[r] : "";
+    li.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === r)));
+    const p = r ? POINTS[r] : 0;
+    if (r) n[r]++;
+    total += p;
+    if (PRONE.has(s.position)) { prone += p; proneMax += 2; } else { pos += p; posMax += 2; }
+  }
+  const shot = n.hit + n.plate + n.miss;
+  $("total").textContent = total;
+  $("n-hit").textContent = n.hit; $("n-plate").textContent = n.plate; $("n-miss").textContent = n.miss;
+  $("n-left").textContent = COURSE.length - shot;
+  $("s-prone").textContent = `${prone} / ${proneMax}`;
+  $("s-pos").textContent = `${pos} / ${posMax}`;
+  const pct = k => (100 * n[k] / COURSE.length) + "%";
+  $("bar-h").style.width = pct("hit"); $("bar-p").style.width = pct("plate"); $("bar-m").style.width = pct("miss");
+}
+
+let pushTimer = null;
+function commit() {
+  card.updatedAt = Date.now();
+  saveLocal();
+  update();
+  if (remote) {
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(() => {
+      remote.set({ results: card.results, updatedAt: card.updatedAt })
+        .then(() => { $("saved").textContent = "Saved to your account"; })
+        .catch(() => { $("saved").textContent = "Saved on this device only"; });
+    }, 400);
+  }
+}
+
+$("shots").addEventListener("click", e => {
+  const b = e.target.closest(".seg button");
+  if (!b) return;
+  const shot = b.closest(".shot").dataset.shot;
+  if (card.results[shot] === b.dataset.v) delete card.results[shot];
+  else card.results[shot] = b.dataset.v;
+  commit();
+});
+
+function resetIdle() {
+  $("reset-area").innerHTML = `<button class="ghost" id="reset" type="button">Clear card</button>`;
+}
+$("reset-area").addEventListener("click", e => {
+  if (e.target.id === "reset") {
+    $("reset-area").innerHTML = `Clear all 30 results? <button class="danger" id="reset-yes" type="button">Clear</button> <button class="ghost" id="reset-no" type="button">Keep</button>`;
+    $("reset-yes").focus();
+  } else if (e.target.id === "reset-yes") {
+    card.results = {}; commit(); resetIdle();
+  } else if (e.target.id === "reset-no") {
+    resetIdle();
+  }
+});
+
+try { if (localStorage.getItem("hft-mode") === "competition") mode = "competition"; } catch (e) {}
+$(mode === "competition" ? "mode-comp" : "mode-practice").checked = true;
+document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener("change", () => {
+  mode = r.value;
+  try { localStorage.setItem("hft-mode", mode); } catch (e) {}
+  renderShots(); update();
+}));
+
+loadLocal();
+renderLegend();
+renderShots();
+update();
+
+// Sync to the viewer's private store when signed in; newest card wins.
+(async () => {
+  try {
+    if (!window.claude?.use) return;
+    const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+    if (!db || !user) return;
+    const uid = await user.id();
+    if (!uid) return;
+    const ref = db.collection("data/users/" + uid).doc("card-" + courseKey);
+    const snap = await ref.get();
+    remote = ref;
+    const d = snap.exists ? snap.data() : null;
+    if (d && d.results && (d.updatedAt || 0) > card.updatedAt) {
+      card = { results: { ...d.results }, updatedAt: d.updatedAt };
+      saveLocal(); update();
+    } else if (card.updatedAt) {
+      await ref.set({ results: card.results, updatedAt: card.updatedAt });
+    }
+    $("saved").textContent = "Saved to your account";
+  } catch (e) {
+    remote = null;
+  }
+})();
+</script>

@@ -7,3 +7,5 @@ __pycache__/
 # generator output and LibreOffice recalc output
 course_generated.json
 out/
+# built by build_app.py (and by the Pages workflow)
+app/scorecard.html

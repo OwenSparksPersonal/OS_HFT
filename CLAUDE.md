@@ -10,7 +10,7 @@ numbers below refer to it).
 ## Files
 - `course.json` - the course: shot number, position, range in yards, hit zone in mm. Edit this to change the course.
 - `build.py` - exports the icons and builds the workbook (openpyxl). `--course`/`--out` to build another course,
-  `--icons v2` to use the pictogram icons in the workbook (default v1).
+  `--icons v1` to use the original line-figure icons in the workbook (default v2).
 - `icons.py` - icon geometry (one source per style) and export: PNG for the workbook, SVG for apps.
   Two styles: v1 = original line figures; v2 = filled pictograms with a scoped-rifle silhouette and
   square posts, separated by knockout gaps ("X" items: transparent in PNG, `<mask>` in SVG).
@@ -20,6 +20,10 @@ numbers below refer to it).
 - `icons/` - generated icons: pr, po, us, uk, ss, sk. v1 in `icons/`, v2 in `icons/v2/`; each has PNG (96px),
   SVG in `svg/{24,48,96}/`, and `svg/sprite.svg` with `<symbol id="hft-pr">` etc. Inline the sprite in the page
   and use `<svg><use href="#hft-pr"/></svg>` (v2 symbols use masks, which are unreliable via an external sprite file).
+- `build_app.py` - builds `app/scorecard.html` (scorecard web app) from `app/scorecard.template.html`, inlining
+  `course.json` and the v2 sprite. Published as a claude.ai artifact: https://claude.ai/artifact/UKHGAgso4C3c3nzgkzux6n
+  (republish after rebuilding). Also on GitHub Pages: https://owensparkspersonal.github.io/OS_HFT/ (built by
+  `.github/workflows/pages.yml` on every push to main; off claude.ai results save in the browser only). Results save per course in the browser and, when signed in, to the viewer's private db doc.
 - `UKAHFT_course_of_fire.xlsx` - output. Sheets: "Course of fire", "Checks".
 
 ## Run
